@@ -1,0 +1,9 @@
+sample_rate, n_mfcc, n_fft, hop_length
+ultrasonic:
+44100 40 1103 441
+JingleBack:
+16000 40 400 160
+DABA:
+16000 40 none none
+flowmur:
+16000 13 2048 512
