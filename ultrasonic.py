@@ -21,7 +21,7 @@ def parse_arguments():
     parser.add_argument('--n_mfcc', type=int, default=40, help='n_mfcc parameter')
     parser.add_argument('--n_fft', type=int, default=1103, help='n_fft parameter')
     parser.add_argument('--hop_length', type=int, default=441, help='hop_length parameter')
-    parser.add_argument('--trigger_size', type=int, default=2, help='The size of trigger') # 15, 30, 45, 60
+    parser.add_argument('--trigger_size', type=int, default=60, help='The size of trigger') # 15, 30, 45, 60
     parser.add_argument('--trigger_pos', type=str, default='mid', help='The position of trigger')  # start mid end
     parser.add_argument('--trigger_cont', type=bool, default=True, help='Trigger continue or not') # True represents continue
     parser.add_argument('--poisoning_rate', type=float, default=0.1, help="The rate of data poisoned")
