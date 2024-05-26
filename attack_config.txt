@@ -16,7 +16,8 @@ lstm           100               101                   32           (13 32)
 rnn               40              40                     40             13                         
 resnet         384                  384                     128          64
 
-256 1 100 40
-256 1 101 40
-256 1 32 40
-256 1 32 13
+input mfcc size:
+ultrasonic 256 1 100 40
+jingleback 256 1 101 40
+daba 256 1 32 40
+flowmur 256 1 32 13
