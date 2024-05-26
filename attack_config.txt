@@ -1,0 +1,22 @@
+sample_rate, n_mfcc, n_fft, hop_length
+ultrasonic:
+44100 40 1103 441
+JingleBack:
+16000 40 400 160
+DABA:
+16000 40 none none
+flowmur:
+16000 13 2048 512
+
+	           Ultrasonic	   JingleBack	           daba	   flowmur
+smallcnn      3072                3072                 896         224
+largecnn       12288              12288               3072         768
+smalllstm      128                  128                128         32
+lstm           100               101                   32           (13 32)
+rnn               40              40                     40             13                         
+resnet         384                  384                     128          64
+
+256 1 100 40
+256 1 101 40
+256 1 32 40
+256 1 32 13
