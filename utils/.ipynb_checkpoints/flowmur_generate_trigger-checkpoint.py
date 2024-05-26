@@ -13,10 +13,10 @@ from utils.prepare_dataset import prepare_clean_dataset
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def pretrain_model(train_data, train_label, test_data, test_label, path):
-    # train_data = torch.tensor(train_data)
-    # train_label = torch.tensor(train_label)
-    # test_data = torch.tensor(test_data)
-    # test_label = torch.tensor(test_label)
+    train_data = torch.tensor(train_data)
+    train_label = torch.tensor(train_label)
+    test_data = torch.tensor(test_data)
+    test_label = torch.tensor(test_label)
     train_data, validation_data, train_label,validation_label =  train_test_split(train_data, train_label, test_size=0.2,random_state=35)
     train_data, validation_data, test_data, train_label, validation_label, test_label = train_data.to(device), validation_data.to(device), test_data.to(device), train_label.to(device), validation_label.to(device), test_label.to(device)
     train_dataset = Data.TensorDataset(train_data, train_label)

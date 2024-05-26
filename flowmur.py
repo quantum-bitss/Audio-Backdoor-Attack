@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
-    parser.add_argument('--model', type=str, default='largecnn', help='Model used for training')
+    parser.add_argument('--model', type=str, default='smallcnn', help='Model used for training')
     parser.add_argument('--dataset', type=str, default='SCDv1-10', help='Dataset used for training')
     parser.add_argument('--sample_rate', type=int, default=16000, help='Sample rate parameter')
     parser.add_argument('--n_mfcc', type=int, default=13, help='n_mfcc parameter')
@@ -38,14 +38,14 @@ def parse_arguments():
     return args
 
 def load_clean_data(args, load=False):
-    data_path = './data/speech_commands_v0.01'   
+    data_path = './data/SpeechCommands/speech_commands_v0.01'   
     if args.dataset == 'SCDv1-10':
         labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
     if args.dataset == 'SCDv1-30':
         labels = ['bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'four', 'go', 'happy', 'house', 'left', 'marvin', 'nine', 'no', 'off', 'on', 'one', 'right', 'seven', 'sheila', 'six', 'stop', 'three', 'tree', 'two', 'up', 'wow', 'yes', 'zero']
     if args.dataset == 'SCDv2-10':
         labels = ["zero","one","two","three","four","five","six","seven","eight","nine"]
-        data_path = './data/speech_commands_v0.02'  
+        data_path = './data/SpeechCommands/speech_commands_v0.02'  
     if args.dataset == 'SCDv2-26':
         labels =["zero","backward","bed","bird","cat","dog","down","follow","forward","go","happy","house","learn","left","marvin","no","off","on","right","sheila","stop","tree","up","visual","wow","yes"]
         data_path = './data/speech_commands_v0.02'
@@ -64,7 +64,7 @@ def load_clean_data(args, load=False):
         clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label = prepare_clean_dataset(data_path=data_path, directory_name=directory_name, labels=labels, waveform_to_consider=args.sample_rate, n_mfcc=args.n_mfcc, n_fft=args.n_fft, hop_length=args.hop_length, sr=args.sample_rate, save=True)
     return clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label
 
-def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=True):
+def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=False):
     clean_train_wav = torch.tensor(clean_train_wav)
     clean_test_wav = torch.tensor(clean_test_wav)
     clean_train_mfcc = torch.tensor(clean_train_mfcc)
@@ -73,7 +73,7 @@ def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_t
     clean_test_label = torch.tensor(clean_test_label)
     path = 'record/' + args.result + '/poisoning_record'
     if not os.path.exists(path):
-        os.mkdir(path)
+        os.makedirs(path)
     print('Training surrogate model...')
     save_path = pretrain_model(clean_train_mfcc, clean_train_label, clean_test_mfcc, clean_test_label, path)
     # save_path = path + '/smallcnn_10_2.pkl' #########################################################
@@ -139,8 +139,10 @@ def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_t
     print('The shape of test data: ', bd_train_mfcc[0].shape)
     if save:
         path = 'record/' + args.result + '/' + args.dataset + "/bd/"
+        if not os.path.exists(path):
+            os.makedirs(path)
         torch.save(bd_train_wav, path + 'bd_train_wav.npy')
-        torch.save(bd_train_mfcc, path + 'bd_train_mfcc')
+        torch.save(bd_train_mfcc, path + 'bd_train_mfcc.npy')
         torch.save(clean_train_label, path + 'bd_train_label.npy')
         torch.save(bd_test_wav, path + 'bd_test_wav.npy')
         torch.save(bd_test_mfcc, path + 'bd_test_mfcc.npy')
@@ -149,17 +151,17 @@ def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_t
 
 def load_model(args):
     if args.model == 'smallcnn':
-        model = smallcnn(args.num_classes)
+        model = smallcnn(args.num_classes, 224)
     elif args.model == 'largecnn':
-        model = largecnn(args.num_classes)
+        model = largecnn(args.num_classes, 768)
     elif args.model == 'smalllstm':
-        model = smalllstm(args.num_classes)
+        model = smalllstm(args.num_classes, 32)
     elif args.model == 'lstmwithattention':
-        model = lstmwithattention(args.num_classes)
+        model = lstmwithattention(args.num_classes, args.n_mfcc, 32)
     elif args.model == 'RNN':
-        model = RNN(args.num_classes)
+        model = RNN(args.num_classes, args.n_mfcc)
     elif args.model == 'ResNet':
-        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes)
+        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes, 64)
     return model
 
 def eval_model(args):

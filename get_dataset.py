@@ -1,10 +1,13 @@
 import torchaudio
 from torchaudio.datasets import SPEECHCOMMANDS
 import os
-import shutil
 
 # original complete dataset: SCD30v1, SCD30v2
 # separate SCD10 from SCD30v1
+data_path = 'data'
+if not os.path.exists(data_path):
+    os.mkdir(data_path)
+    
 set_V2 = SPEECHCOMMANDS(root="data", download=True)                       # v2
 set_V1 = SPEECHCOMMANDS(root="data", url='speech_commands_v0.01',download=True) # v1
 

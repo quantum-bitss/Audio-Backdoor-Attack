@@ -31,12 +31,12 @@ def parse_arguments():
     parser.add_argument('--num_classes', type=int, default=10, help="Number of classes")
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of epochs for training")
     parser.add_argument('--patience', type=int, default=20, help="Patience for early stopping")
-    parser.add_argument('--result', type=str, default='ultrasonic_smallcnn_2', help="The name of the file storing attack result") # ultrasonic01
+    parser.add_argument('--result', type=str, default='ultrasonic01', help="The name of the file storing attack result") # ultrasonic01
     args = parser.parse_args()
     return args
 
 def load_clean_data(args, load=False):
-    data_path = './data/speech_commands_v0.01'   
+    data_path = './data/SpeechCommands/speech_commands_v0.01'   
     if args.dataset == 'SCDv1-10':
         labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
     if args.dataset == 'SCDv1-30':
@@ -46,12 +46,11 @@ def load_clean_data(args, load=False):
         data_path = './data/speech_commands_v0.02'  
     if args.dataset == 'SCDv2-26':
         labels =["zero","backward","bed","bird","cat","dog","down","follow","forward","go","happy","house","learn","left","marvin","no","off","on","right","sheila","stop","tree","up","visual","wow","yes"]
-        data_path = './data/speech_commands_v0.02'
+        data_path = './data/SpeechCommands/speech_commands_v0.02'
     directory_name = 'record/' + args.result + '/' + args.dataset 
     print('Start loading...')
     if load:
         path = 'record/' + args.result + '/' + args.dataset + '/clean/'
-        # path = 'record/ultrasonic_smallcnn_60/SCDv1-30/clean/' 
         clean_train_wav = np.load(path + 'clean_train_wav.npy')
         clean_test_wav = np.load(path + 'clean_test_wav.npy')
         clean_train_mfcc = np.load(path + 'clean_train_mfcc.npy')
@@ -165,17 +164,17 @@ def get_data_loader(args):
     
 def load_model(args):
     if args.model == 'smallcnn':
-        model = smallcnn(args.num_classes)
+        model = smallcnn(args.num_classes, 3072)
     elif args.model == 'largecnn':
-        model = largecnn(args.num_classes)
+        model = largecnn(args.num_classes, 12288)
     elif args.model == 'smalllstm':
-        model = smalllstm(args.num_classes)
+        model = smalllstm(args.num_classes, 128)
     elif args.model == 'lstmwithattention':
-        model = lstmwithattention(args.num_classes)
+        model = lstmwithattention(args.num_classes, args.n_mfcc, 100)
     elif args.model == 'RNN':
-        model = RNN(args.num_classes)
+        model = RNN(args.num_classes, args.n_mfcc)
     elif args.model == 'ResNet':
-        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes)
+        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes, 384)
     return model
 
 def eval_model(args):

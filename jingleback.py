@@ -15,8 +15,8 @@ from utils.models import smallcnn, largecnn, smalllstm, lstmwithattention, RNN, 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
-    parser.add_argument('--model', type=str, default='largecnn', help='Model used for training')
-    parser.add_argument('--dataset', type=str, default='SCDv1-30', help='Dataset used for training')
+    parser.add_argument('--model', type=str, default='smallcnn', help='Model used for training')
+    parser.add_argument('--dataset', type=str, default='SCDv1-10', help='Dataset used for training')
     parser.add_argument('--sample_rate', type=int, default=16000, help='Sample rate parameter')
     parser.add_argument('--n_mfcc', type=int, default=40, help='n_mfcc parameter')
     parser.add_argument('--n_fft', type=int, default=400, help='n_fft parameter')
@@ -24,32 +24,32 @@ def parse_arguments():
     parser.add_argument('--style', type=int, default=1, help='The style to choose0~5')
     parser.add_argument('--poisoning_rate', type=float, default=0.1, help="The rate of data poisoned")
     
-    parser.add_argument('--learning_rate', type=float, default=0.001, help="The learning rate")
+    parser.add_argument('--learning_rate', type=float, default=0.0001, help="The learning rate")
     parser.add_argument('--batch_size', type=int, default=256, help="Number of data in one batch")
-    parser.add_argument('--num_classes', type=int, default=30, help="Number of classes")
+    parser.add_argument('--num_classes', type=int, default=10, help="Number of classes")
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of epochs for training")
     parser.add_argument('--patience', type=int, default=20, help="Patience for early stopping")
-    parser.add_argument('--result', type=str, default='jingleback_lstmwithattention', help="The name of the file storing attack result") # ultrasonic01
+    parser.add_argument('--result', type=str, default='jingleback01', help="The name of the file storing attack result") # ultrasonic01
     args = parser.parse_args()
     return args
 
-def load_clean_data(args, load=True):
-    data_path = './data/speech_commands_v0.01'   
+def load_clean_data(args, load=False):
+    data_path = './data/SpeechCommands/speech_commands_v0.01'   
     if args.dataset == 'SCDv1-10':
         labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
     if args.dataset == 'SCDv1-30':
         labels = ['bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'four', 'go', 'happy', 'house', 'left', 'marvin', 'nine', 'no', 'off', 'on', 'one', 'right', 'seven', 'sheila', 'six', 'stop', 'three', 'tree', 'two', 'up', 'wow', 'yes', 'zero']
     if args.dataset == 'SCDv2-10':
         labels = ["zero","one","two","three","four","five","six","seven","eight","nine"]
-        data_path = './data/speech_commands_v0.02'  
+        data_path = './data/SpeechCommands/speech_commands_v0.02'  
     if args.dataset == 'SCDv2-26':
         labels =["zero","backward","bed","bird","cat","dog","down","follow","forward","go","happy","house","learn","left","marvin","no","off","on","right","sheila","stop","tree","up","visual","wow","yes"]
         data_path = './data/speech_commands_v0.02'
     directory_name = 'record/' + args.result + '/' + args.dataset
     print('Start loading...')
     if load:
-        # path = 'record/' + args.result + '/' + args.dataset + '/clean/'
-        path = 'record/jingleback01/SCDv1-30/clean/' ###############################
+        path = 'record/' + args.result + '/' + args.dataset + '/clean/'
+        # path = 'record/jingleback01/SCDv1-30/clean/' ###############################
         clean_train_wav = np.load(path + 'clean_train_wav.npy')
         clean_test_wav = np.load(path + 'clean_test_wav.npy')
         clean_train_mfcc = np.load(path + 'clean_train_mfcc.npy')
@@ -61,7 +61,7 @@ def load_clean_data(args, load=True):
         clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label = prepare_clean_dataset(data_path=data_path, directory_name=directory_name, labels=labels, waveform_to_consider=args.sample_rate, n_mfcc=args.n_mfcc, n_fft=args.n_fft, hop_length=args.hop_length, sr=args.sample_rate, save=True)
     return clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label
 
-def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=True):
+def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=False):
     style_id = args.style
     boards = get_boards()
     board = boards[style_id]
@@ -160,17 +160,17 @@ def get_data_loader(args):
     
 def load_model(args):
     if args.model == 'smallcnn':
-        model = smallcnn(args.num_classes)
+        model = smallcnn(args.num_classes, 3072)
     elif args.model == 'largecnn':
-        model = largecnn(args.num_classes)
+        model = largecnn(args.num_classes, 12288)
     elif args.model == 'smalllstm':
-        model = smalllstm(args.num_classes)
+        model = smalllstm(args.num_classes, 128)
     elif args.model == 'lstmwithattention':
-        model = lstmwithattention(args.num_classes)
+        model = lstmwithattention(args.num_classes, args.n_mfcc, 101)
     elif args.model == 'RNN':
-        model = RNN(args.num_classes)
+        model = RNN(args.num_classes, args.n_mfcc)
     elif args.model == 'ResNet':
-        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes)
+        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes, 384)
     return model
 
 def eval_model(args):

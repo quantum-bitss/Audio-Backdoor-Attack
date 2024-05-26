@@ -31,18 +31,18 @@ def parse_arguments():
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of epochs for training")
     parser.add_argument('--patience', type=int, default=20, help="Patience for early stopping")
     parser.add_argument('--result', type=str, default='DABA01', help="The name of the file storing attack result") # ultrasonic01
-    parser.add_argument('--data_path', type=str, default='./data/speech_commands_v0.01', help="The path of dataset")
+    parser.add_argument('--data_path', type=str, default='./data/SpeechCommands/speech_commands_v0.01' , help="The path of dataset")
     parser.add_argument('--labels', type=list, default=['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go'], help="The chosen labels")
     parser.add_argument('--directory_name', type=str, default='./data/speech_commands_v0.01', help="The storing place")
     args = parser.parse_args()
-    args.data_path = './data/speech_commands_v0.01'   
+    args.data_path = './data/SpeechCommands/speech_commands_v0.01'   
     if args.dataset == 'SCDv1-10':
         args.labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
     if args.dataset == 'SCDv1-30':
         args.labels = ['bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'four', 'go', 'happy', 'house', 'left', 'marvin', 'nine', 'no', 'off', 'on', 'one', 'right', 'seven', 'sheila', 'six', 'stop', 'three', 'tree', 'two', 'up', 'wow', 'yes', 'zero']
     if args.dataset == 'SCDv2-10':
         args.labels = ["zero","one","two","three","four","five","six","seven","eight","nine"]
-        args.data_path = './data/speech_commands_v0.02'  
+        args.data_path = './data/SpeechCommands/speech_commands_v0.02'  
     if args.dataset == 'SCDv2-26':
         args.labels =["zero","backward","bed","bird","cat","dog","down","follow","forward","go","happy","house","learn","left","marvin","no","off","on","right","sheila","stop","tree","up","visual","wow","yes"]
         args.data_path = './data/speech_commands_v0.02'
@@ -78,10 +78,11 @@ def get_data(args, path, test_bd=False):
                     total_mfcc.append(librosa_MFCC(waveform, args.sample_rate, args.n_mfcc).T[np.newaxis,:])
     return total_waveform, total_mfcc, total_label, poison_index
 
-def load_data(args, save=True, load=False):
+def load_data(args, save=False, load=False):
     # train_wav, test_wav, train_mfcc, test_mfcc, train_label, test_label = prepare_clean_dataset(args.data_path, args.directory_name,
     #                                                                                             args.labels, args.sample_rate, 
     #                                                                                             args.n_mfcc)
+    # args.directory_name = 'record/DABA02/SCDv1-10' #############################
     clean_path = args.directory_name + '/clean/'
     bd_path = args.directory_name + '/bd/'
     if load:
@@ -133,9 +134,12 @@ def get_data_loader(args):
     bd_train_wav, bd_train_mfcc, bd_train_label, bd_train_poison_index, \
     bd_test_wav, bd_test_mfcc, bd_test_label, bd_test_poison_index, \
     clean_test_wav, clean_test_mfcc, clean_test_label, clean_test_poison_index = load_data(args)
-    bd_train_set = BDDataset(torch.tensor(bd_train_mfcc), torch.tensor(bd_train_label), torch.tensor(bd_train_poison_index))
-    bd_test_set = BDDataset(torch.tensor(bd_test_mfcc), torch.tensor(bd_test_label), torch.tensor(bd_test_poison_index))
-    clean_test_set = Data.TensorDataset(torch.tensor(clean_test_mfcc), torch.tensor(clean_test_label))
+    # bd_train_mfcc = bd_train_mfcc.astype(np.float32)
+    # be_test_mfcc = bd_test_mfcc.astype(np.float32)
+    # clean_test_mfcc = clean_test_mfcc.astype(np.float32)
+    bd_train_set = BDDataset(torch.tensor(bd_train_mfcc).float(), torch.tensor(bd_train_label), torch.tensor(bd_train_poison_index))
+    bd_test_set = BDDataset(torch.tensor(bd_test_mfcc).float(), torch.tensor(bd_test_label), torch.tensor(bd_test_poison_index))
+    clean_test_set = Data.TensorDataset(torch.tensor(clean_test_mfcc).float(), torch.tensor(clean_test_label))
     clean_test_loader = Data.DataLoader(dataset=clean_test_set, batch_size=args.batch_size, shuffle=True) # 注意和bddataset数据结构不一样
     bd_train_loader = Data.DataLoader(dataset=bd_train_set, batch_size=args.batch_size, shuffle=True)
     bd_test_loader = Data.DataLoader(dataset=bd_test_set, batch_size=args.batch_size, shuffle=True)
@@ -143,17 +147,17 @@ def get_data_loader(args):
 
 def load_model(args):
     if args.model == 'smallcnn':
-        model = smallcnn(args.num_classes)
+        model = smallcnn(args.num_classes, 896)
     elif args.model == 'largecnn':
-        model = largecnn(args.num_classes)
+        model = largecnn(args.num_classes, 3072)
     elif args.model == 'smalllstm':
-        model = smalllstm(args.num_classes)
+        model = smalllstm(args.num_classes, 128)
     elif args.model == 'lstmwithattention':
-        model = lstmwithattention(args.num_classes)
+        model = lstmwithattention(args.num_classes, args.n_mfcc, 32)
     elif args.model == 'RNN':
-        model = RNN(args.num_classes)
+        model = RNN(args.num_classes, args.n_mfcc)
     elif args.model == 'ResNet':
-        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes)
+        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes, 128)
     return model
 
 def eval_model(args):
