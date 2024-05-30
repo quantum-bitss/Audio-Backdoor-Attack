@@ -8,6 +8,7 @@ import librosa
 import torchaudio.transforms as T
 from sklearn.model_selection import train_test_split
 import argparse
+from tqdm import tqdm
 
 class BDDataset(Dataset):
     def __init__(self, mfcc_list, label_list, poison_index):
@@ -49,10 +50,10 @@ def prepare_clean_dataset(data_path, directory_name, labels, waveform_to_conside
     total_waveform = []
     total_label = []
     total_mfcc = []
-    for label in labels:
+    for label in tqdm(labels):
         label_path = os.path.join(data_path, label)  # the directory of a class
         wav_names = os.listdir(label_path)           # all the wav file in this class
-        for wav in wav_names:
+        for wav in tqdm(wav_names):
             if wav.endswith(".wav"):
                 wav_path = os.path.join(label_path, wav)
                 waveform, sample_rate = torchaudio.load(wav_path)
