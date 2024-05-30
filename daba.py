@@ -7,6 +7,7 @@ import numpy as np
 import soundfile as sf
 import argparse
 import csv
+from tqdm import tqdm
 from prepare_dataset import BDDataset
 from utils.daba_injection_tools import librosa_MFCC, poison_data
 from utils.training_tools import train, test, EarlyStoppingModel
@@ -58,10 +59,10 @@ def get_data(args, path, test_bd=False):
         labels = ['up']
     else:
         labels = args.labels
-    for label in labels:
+    for label in tqdm(labels):
         label_path = os.path.join(path, label)  # the directory of a class
         wav_names = os.listdir(label_path)           # all the wav file in this class
-        for wav in wav_names:
+        for wav in tqdm(wav_names):
             if wav.endswith(".wav"):
                 wav_path = os.path.join(label_path, wav)
                 waveform, sample_rate = sf.read(wav_path)
