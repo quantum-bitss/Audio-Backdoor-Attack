@@ -106,7 +106,7 @@ def load_data(args, save=False, load=False):
         os.makedirs(bd_path)
     data_directory_name = args.directory_name + '/selection_data'
     poison_data(labels=args.labels, org_dataset_path=args.data_path, directory_name=data_directory_name, poison_label='up', 
-                num_classes=args.num_classes, trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, 
+                num_classes=args.num_classes, time_len=args.n_mfcc, trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, 
                 poison_num=args.poisoning_rate)
     bd_train = data_directory_name + '/poison/train'
     bd_test = data_directory_name + '/poison/test'
