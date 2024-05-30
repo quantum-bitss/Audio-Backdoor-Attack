@@ -75,7 +75,7 @@ def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_t
     if not os.path.exists(path):
         os.makedirs(path)
     print('Training surrogate model...')
-    save_path = pretrain_model(clean_train_mfcc, clean_train_label, clean_test_mfcc, clean_test_label, path)
+    save_path = pretrain_model(clean_train_mfcc, clean_train_label, clean_test_mfcc, clean_test_label, path, args.num_classes)
     # save_path = path + '/smallcnn_10_2.pkl' #########################################################
     benign_model = torch.load(save_path, device)
     
