@@ -1,0 +1,17 @@
+model: smallcnn
+dataset: SCDv1-10
+load_clean_data: False
+sample_rate: 44100
+n_mfcc: 40
+n_fft: 1103
+hop_length: 441
+trigger_size: 40
+trigger_pos: mid
+trigger_cont: False
+poisoning_rate: 0.1
+learning_rate: 0.0001
+batch_size: 256
+num_classes: 10
+num_epoches: 300
+patience: 20
+result: ultrasonic02

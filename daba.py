@@ -1,4 +1,5 @@
 import os
+import yaml
 import torch
 import torch.utils.data as Data
 import torch.nn as nn
@@ -7,15 +8,22 @@ import numpy as np
 import soundfile as sf
 import argparse
 import csv
+from tqdm import tqdm
 from prepare_dataset import BDDataset
-from utils.daba_injection_tools import librosa_MFCC, poison_data
+from utils.daba_injection_tools import librosa_MFCC, daba_poison_data
 from utils.training_tools import train, test, EarlyStoppingModel
 from utils.visual_tools import plot_loss, plot_metrics
 from utils.models import smallcnn, largecnn, smalllstm, lstmwithattention, RNN, ResNet, ResidualBlock
 
+def add_yaml_to_args(args):
+    with open(args.yaml_path, 'r') as f:
+        mix_defaults = yaml.safe_load(f)
+    args.__dict__.update({k: v for k, v in mix_defaults.items() if v is not None})
+    
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
-    parser.add_argument('--model', type=str, default='RNN', help='Model used for training')
+    parser.add_argument('--model', type=str, default='smallcnn', help='Model used for training')
+    parser.add_argument('--load_data', type=bool, default=False, help="Load saved data ot not")
     parser.add_argument('--dataset', type=str, default='SCDv1-10', help='Dataset used for training')
     parser.add_argument('--sample_rate', type=int, default=16000, help='Sample rate parameter')
     parser.add_argument('--n_mfcc', type=int, default=40, help='n_mfcc parameter')
@@ -30,11 +38,13 @@ def parse_arguments():
     parser.add_argument('--num_classes', type=int, default=10, help="Number of classes")
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of epochs for training")
     parser.add_argument('--patience', type=int, default=20, help="Patience for early stopping")
-    parser.add_argument('--result', type=str, default='DABA01', help="The name of the file storing attack result") # ultrasonic01
+    parser.add_argument('--result', type=str, default='DABA02', help="The name of the file storing attack result") # ultrasonic01
     parser.add_argument('--data_path', type=str, default='./data/SpeechCommands/speech_commands_v0.01' , help="The path of dataset")
     parser.add_argument('--labels', type=list, default=['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go'], help="The chosen labels")
     parser.add_argument('--directory_name', type=str, default='./data/speech_commands_v0.01', help="The storing place")
+    parser.add_argument('--yaml_path', type=str, default='config/daba.yaml', help="The config file path")
     args = parser.parse_args()
+    add_yaml_to_args(args)
     args.data_path = './data/SpeechCommands/speech_commands_v0.01'   
     if args.dataset == 'SCDv1-10':
         args.labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
@@ -58,10 +68,10 @@ def get_data(args, path, test_bd=False):
         labels = ['up']
     else:
         labels = args.labels
-    for label in labels:
+    for label in tqdm(labels):
         label_path = os.path.join(path, label)  # the directory of a class
         wav_names = os.listdir(label_path)           # all the wav file in this class
-        for wav in wav_names:
+        for wav in tqdm(wav_names):
             if wav.endswith(".wav"):
                 wav_path = os.path.join(label_path, wav)
                 waveform, sample_rate = sf.read(wav_path)
@@ -105,8 +115,8 @@ def load_data(args, save=False, load=False):
     if not os.path.exists(bd_path):
         os.makedirs(bd_path)
     data_directory_name = args.directory_name + '/selection_data'
-    poison_data(labels=args.labels, org_dataset_path=args.data_path, directory_name=data_directory_name, poison_label='up', 
-                num_classes=args.num_classes, trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, 
+    daba_poison_data(args=args, labels=args.labels, org_dataset_path=args.data_path, directory_name=data_directory_name, poison_label='up', 
+                trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, 
                 poison_num=args.poisoning_rate)
     bd_train = data_directory_name + '/poison/train'
     bd_test = data_directory_name + '/poison/test'
@@ -133,7 +143,7 @@ def load_data(args, save=False, load=False):
 def get_data_loader(args):
     bd_train_wav, bd_train_mfcc, bd_train_label, bd_train_poison_index, \
     bd_test_wav, bd_test_mfcc, bd_test_label, bd_test_poison_index, \
-    clean_test_wav, clean_test_mfcc, clean_test_label, clean_test_poison_index = load_data(args)
+    clean_test_wav, clean_test_mfcc, clean_test_label, clean_test_poison_index = load_data(args, load=args.load_data)
     # bd_train_mfcc = bd_train_mfcc.astype(np.float32)
     # be_test_mfcc = bd_test_mfcc.astype(np.float32)
     # clean_test_mfcc = clean_test_mfcc.astype(np.float32)
@@ -215,11 +225,7 @@ if __name__ == "__main__":
          print(f"{arg}: {value}")
     train_loss_list, train_mix_acc_list, train_asr_list, test_clean_loss_list, test_bd_loss_list, test_clean_acc_list, test_asr_list = eval_model(args)
     
-        
-    
-    
             
         
-    
     
     

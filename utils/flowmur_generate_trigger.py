@@ -12,7 +12,7 @@ from utils.prepare_dataset import prepare_clean_dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def pretrain_model(train_data, train_label, test_data, test_label, path):
+def pretrain_model(train_data, train_label, test_data, test_label, path, num_classes):
     # train_data = torch.tensor(train_data)
     # train_label = torch.tensor(train_label)
     # test_data = torch.tensor(test_data)
@@ -27,9 +27,9 @@ def pretrain_model(train_data, train_label, test_data, test_label, path):
     test_loader = Data.DataLoader(dataset=test_dataset, batch_size=256, shuffle=True)
     criterion = torch.nn.CrossEntropyLoss().cuda()
     for i in range(3):
-        model = smallcnn(10).to(device)
+        model = smallcnn(num_classes, 224).to(device)
         optimizer = optim.Adam(model.parameters(),lr=0.0001)
-        save_path = path + "/smallcnn_10_"+str(i)+".pkl"
+        save_path = path + "/smallcnn_"+str(num_classes)+"_"+str(i)+".pkl"
         early_stopping = EarlyStoppingModel(patience=20, verbose=True, path=save_path)
         for epoch in range(1, 1001):
             train_loss, train_acc = clean_train(model, train_loader, device, optimizer, criterion)

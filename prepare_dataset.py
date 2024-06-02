@@ -8,6 +8,7 @@ import librosa
 import torchaudio.transforms as T
 from sklearn.model_selection import train_test_split
 import argparse
+from tqdm import tqdm
 
 class BDDataset(Dataset):
     def __init__(self, mfcc_list, label_list, poison_index):
@@ -49,10 +50,10 @@ def prepare_clean_dataset(data_path, directory_name, labels, waveform_to_conside
     total_waveform = []
     total_label = []
     total_mfcc = []
-    for label in labels:
+    for label in tqdm(labels):
         label_path = os.path.join(data_path, label)  # the directory of a class
         wav_names = os.listdir(label_path)           # all the wav file in this class
-        for wav in wav_names:
+        for wav in tqdm(wav_names):
             if wav.endswith(".wav"):
                 wav_path = os.path.join(label_path, wav)
                 waveform, sample_rate = torchaudio.load(wav_path)
@@ -81,6 +82,34 @@ def prepare_clean_dataset(data_path, directory_name, labels, waveform_to_conside
         np.save(path + "clean_train_label", train_label)
         np.save(path + "clean_test_label", test_label)
     return train_wav, test_wav, train_mfcc, test_mfcc, train_label, test_label
+
+def load_clean_data(args, load=False):
+    data_path = './data/SpeechCommands/speech_commands_v0.01'   
+    if args.dataset == 'SCDv1-10':
+        labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
+    if args.dataset == 'SCDv1-30':
+        labels = ['bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'four', 'go', 'happy', 'house', 'left', 'marvin', 'nine', 'no', 'off', 'on', 'one', 'right', 'seven', 'sheila', 'six', 'stop', 'three', 'tree', 'two', 'up', 'wow', 'yes', 'zero']
+    if args.dataset == 'SCDv2-10':
+        labels = ["zero","one","two","three","four","five","six","seven","eight","nine"]
+        data_path = './data/SpeechCommands/speech_commands_v0.02'  
+    if args.dataset == 'SCDv2-26':
+        labels =["zero","backward","bed","bird","cat","dog","down","follow","forward","go","happy","house","learn","left","marvin","no","off","on","right","sheila","stop","tree","up","visual","wow","yes"]
+        data_path = './data/speech_commands_v0.02'
+    directory_name = 'record/' + args.result + '/' + args.dataset
+    print('Start loading...')
+    if load:
+        path = 'record/' + args.result + '/' + args.dataset + '/clean/'
+        # path = 'record/jingleback01/SCDv1-30/clean/' ###############################
+        clean_train_wav = np.load(path + 'clean_train_wav.npy')
+        clean_test_wav = np.load(path + 'clean_test_wav.npy')
+        clean_train_mfcc = np.load(path + 'clean_train_mfcc.npy')
+        clean_test_mfcc = np.load(path + 'clean_test_mfcc.npy')
+        clean_train_label = np.load(path + 'clean_train_label.npy')
+        clean_test_label = np.load(path + 'clean_test_label.npy')
+        print('Clean data loaded.')
+    else:
+        clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label = prepare_clean_dataset(data_path=data_path, directory_name=directory_name, labels=labels, waveform_to_consider=args.sample_rate, n_mfcc=args.n_mfcc, n_fft=args.n_fft, hop_length=args.hop_length, sr=args.sample_rate, save=True)
+    return clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label
 
 # parser = argparse.ArgumentParser()
 # parser.add_argument('--attack', type=str, default='Ultrasonic', help='Specify the type of attack')

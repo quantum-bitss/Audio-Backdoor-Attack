@@ -65,13 +65,20 @@ def calc_ent(X):
 def cross_entropy(a, y):
     return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
 
-def one_sotamax_entropy(model,audio_path):
+def one_sotamax_entropy(model_type, model, audio_path):
     model = model.to(device)
     audio, sr = soundfile.read(audio_path)
     mfcc = librosa_MFCC(audio, sr, n_mfcc=40)
+    if mfcc.shape[1] > 32:
+        mfcc = mfcc[:, :32]
+    else:
+        mfcc = np.pad(mfcc, ((0, 0), (0, 32 - mfcc.shape[1])), mode='constant', constant_values=-200)
     x = mfcc.T
     x = torch.tensor(x[np.newaxis, :], dtype=torch.float32)
+    if not model_type == 'RNN':
+        x = x.unsqueeze(1)
     x = x.to(device)
+    # print(x.shape)
     output = model.forward(x)
     sf = F.softmax(output.data,dim=1)
     sf_ = sf.cpu().numpy().tolist()[0]
@@ -79,11 +86,11 @@ def one_sotamax_entropy(model,audio_path):
     # a, predicted = torch.max(output.data, 1)
     return sf.cpu().numpy()[0], se
 
-def Cer_sotamax_entropy(model,trigger_pool, path): #computer certainty
+def Cer_sotamax_entropy(model_type, model,trigger_pool, path): #computer certainty
     trigger_names = get_filenames(trigger_pool, "*.wav")
     se_list = []
     for trigger_path in trigger_names:
-        _,se = one_sotamax_entropy(model, trigger_path)
+        _,se = one_sotamax_entropy(model_type, model, trigger_path)
         se_list.append(se)
     Cer_dict = dict(zip(trigger_names,se_list))
     data_path = path + '/dict/'
@@ -94,18 +101,18 @@ def Cer_sotamax_entropy(model,trigger_pool, path): #computer certainty
         
     return Cer_dict
 
-def Cer_triggers_selection(model,trigger_pool,rank, path):
+def Cer_triggers_selection(model_type, model,trigger_pool,rank, path):
     rank-=1
     data_path = path + '/dict/Cer.pickle'
     if os.path.exists(data_path):
         base_dict = pkl.load(open(data_path, 'rb'))
     else:
-        base_dict = Cer_sotamax_entropy(model,trigger_pool, path)
+        base_dict = Cer_sotamax_entropy(model_type, model,trigger_pool, path)
     d_order_frommax = sorted(base_dict.items(), key=lambda x: x[1], reverse=True)
     d_order_frommin = sorted(base_dict.items(), key=lambda x: x[1], reverse=False)
     return d_order_frommax[rank],d_order_frommin[rank]
 
-def Inf_cross_entropy(model,trigger_path,hosts_path,path, po_db=-20): #computer influence
+def Inf_cross_entropy(model_type, model,trigger_path,hosts_path,path, po_db=-20): #computer influence
     entropy_list = []
     if not os.path.exists(path + '/trigger_pool'):
         os.makedirs(path+'/trigger_pool')
@@ -117,8 +124,8 @@ def Inf_cross_entropy(model,trigger_path,hosts_path,path, po_db=-20): #computer 
     for host_path in host_samples_path:
         _,poison_path = single_trigger_injection_db(org_wav_path=host_path,trigger_wav_path=trigger_path,output_path=output_path,po_db=po_db)
 
-        trigger_sf,_ = one_sotamax_entropy(model,trigger_path)
-        poison_sf,_ = one_sotamax_entropy(model,poison_path)
+        trigger_sf,_ = one_sotamax_entropy(model_type, model,trigger_path)
+        poison_sf,_ = one_sotamax_entropy(model_type, model,poison_path)
         one_ce = cross_entropy(trigger_sf,poison_sf)
 
         entropy_list.append(one_ce)
@@ -130,12 +137,12 @@ def Inf_cross_entropy(model,trigger_path,hosts_path,path, po_db=-20): #computer 
         pkl.dump(Inf_hosts, f)
     return Inf_hosts
 
-def Inf_hosts_selection(model,trigger_path,hosts_path,po_nums, path):
+def Inf_hosts_selection(model_type, model,trigger_path,hosts_path,po_nums, path):
     data_path = path + '/dict/Inf_hosts.pickle'
     if os.path.exists(data_path):
         base_dict = pkl.load(open(data_path, 'rb'))
     else:
-        base_dict = Inf_cross_entropy(model,trigger_path, hosts_path, path)
+        base_dict = Inf_cross_entropy(model_type, model,trigger_path, hosts_path, path)
     d_order_frommin = sorted(base_dict.items(), key=lambda x: x[1], reverse=False)
     d_order_fromax = sorted(base_dict.items(), key=lambda x: x[1], reverse=True)
 
@@ -144,9 +151,9 @@ def Inf_hosts_selection(model,trigger_path,hosts_path,po_nums, path):
 
     return d_order_fromax_list[:po_nums], d_order_frommin_list[:po_nums]
 
-def trigger_selection_hosts_selection(trigger_selection_mode,model,trigger_pool,host_samples,po_num,path, tr_num=1):
-        _, trigger = Cer_triggers_selection(model, trigger_pool,tr_num, path)
-        hosts_frommax,hosts_fromin = Inf_hosts_selection(model,trigger[0],host_samples,po_num, path)
+def trigger_selection_hosts_selection(model_type, trigger_selection_mode,model,trigger_pool,host_samples,po_num,path, tr_num=1):
+        _, trigger = Cer_triggers_selection(model_type, model, trigger_pool,tr_num, path)
+        hosts_frommax,hosts_fromin = Inf_hosts_selection(model_type, model,trigger[0],host_samples,po_num, path)
         if trigger_selection_mode=='Cer':
             return trigger[0],hosts_frommax
         else:

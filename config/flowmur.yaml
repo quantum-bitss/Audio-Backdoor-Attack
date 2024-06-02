@@ -1,0 +1,16 @@
+model: smallcnn
+dataset: SCDv1-10
+load_clean_data: False
+sample_rate: 16000
+n_mfcc: 13
+n_fft: 2048
+hop_length: 512
+trigger_duration: 0.5
+snr_db: 30
+poisoning_rate: 0.1
+learning_rate: 0.0001
+batch_size: 256
+num_classes: 10
+num_epoches: 300
+patience: 20
+result: badnets01

@@ -1,4 +1,5 @@
 import os
+import yaml
 import torch
 import torch.utils.data as Data
 import torch.nn as nn
@@ -7,23 +8,29 @@ import numpy as np
 import random
 import argparse
 import csv
-from prepare_dataset import MFCC, prepare_clean_dataset, BDDataset
+from prepare_dataset import MFCC, BDDataset, load_clean_data
 from utils.ultra_trigger import GenerateTrigger
 from utils.training_tools import train, test, EarlyStoppingModel
 from utils.visual_tools import plot_loss, plot_metrics
 from utils.models import smallcnn, largecnn, smalllstm, lstmwithattention, RNN, ResNet, ResidualBlock
 
+def add_yaml_to_args(args):
+    with open(args.yaml_path, 'r') as f:
+        mix_defaults = yaml.safe_load(f)
+    args.__dict__.update({k: v for k, v in mix_defaults.items() if v is not None})
+    
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
-    parser.add_argument('--model', type=str, default='smallcnn', help='Model used for training')
+    parser.add_argument('--model', type=str, default='RNN', help='Model used for training')
     parser.add_argument('--dataset', type=str, default='SCDv1-10', help='Dataset used for training')
+    parser.add_argument('--load_clean_data', type=bool, default=False, help="Load clean data ot not")
     parser.add_argument('--sample_rate', type=int, default=44100, help='Sample rate parameter')
     parser.add_argument('--n_mfcc', type=int, default=40, help='n_mfcc parameter')
     parser.add_argument('--n_fft', type=int, default=1103, help='n_fft parameter')
     parser.add_argument('--hop_length', type=int, default=441, help='hop_length parameter')
-    parser.add_argument('--trigger_size', type=int, default=2, help='The size of trigger') # 15, 30, 45, 60
+    parser.add_argument('--trigger_size', type=int, default=60, help='The size of trigger') # 15, 30, 45, 60
     parser.add_argument('--trigger_pos', type=str, default='mid', help='The position of trigger')  # start mid end
-    parser.add_argument('--trigger_cont', type=bool, default=True, help='Trigger continue or not') # True represents continue
+    parser.add_argument('--trigger_cont', type=bool, default=False, help='Trigger continue or not') # True represents continue
     parser.add_argument('--poisoning_rate', type=float, default=0.1, help="The rate of data poisoned")
     
     parser.add_argument('--learning_rate', type=float, default=0.0001, help="The learning rate")
@@ -31,38 +38,12 @@ def parse_arguments():
     parser.add_argument('--num_classes', type=int, default=10, help="Number of classes")
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of epochs for training")
     parser.add_argument('--patience', type=int, default=20, help="Patience for early stopping")
-    parser.add_argument('--result', type=str, default='ultrasonic01', help="The name of the file storing attack result") # ultrasonic01
+    parser.add_argument('--result', type=str, default='ultrasonic02', help="The name of the file storing attack result") # ultrasonic01
+    parser.add_argument('--yaml_path', type=str, default='config/ultrasonic.yaml', help="The config file path")
     args = parser.parse_args()
     return args
 
-def load_clean_data(args, load=False):
-    data_path = './data/SpeechCommands/speech_commands_v0.01'   
-    if args.dataset == 'SCDv1-10':
-        labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
-    if args.dataset == 'SCDv1-30':
-        labels = ['bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'four', 'go', 'happy', 'house', 'left', 'marvin', 'nine', 'no', 'off', 'on', 'one', 'right', 'seven', 'sheila', 'six', 'stop', 'three', 'tree', 'two', 'up', 'wow', 'yes', 'zero']
-    if args.dataset == 'SCDv2-10':
-        labels = ["zero","one","two","three","four","five","six","seven","eight","nine"]
-        data_path = './data/speech_commands_v0.02'  
-    if args.dataset == 'SCDv2-26':
-        labels =["zero","backward","bed","bird","cat","dog","down","follow","forward","go","happy","house","learn","left","marvin","no","off","on","right","sheila","stop","tree","up","visual","wow","yes"]
-        data_path = './data/SpeechCommands/speech_commands_v0.02'
-    directory_name = 'record/' + args.result + '/' + args.dataset 
-    print('Start loading...')
-    if load:
-        path = 'record/' + args.result + '/' + args.dataset + '/clean/'
-        clean_train_wav = np.load(path + 'clean_train_wav.npy')
-        clean_test_wav = np.load(path + 'clean_test_wav.npy')
-        clean_train_mfcc = np.load(path + 'clean_train_mfcc.npy')
-        clean_test_mfcc = np.load(path + 'clean_test_mfcc.npy')
-        clean_train_label = np.load(path + 'clean_train_label.npy')
-        clean_test_label = np.load(path + 'clean_test_label.npy')
-        print('Clean data loaded.')
-    else:
-        clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label = prepare_clean_dataset(data_path=data_path, directory_name=directory_name, labels=labels, waveform_to_consider=args.sample_rate, n_mfcc=args.n_mfcc, n_fft=args.n_fft, hop_length=args.hop_length, sr=args.sample_rate, save=True)
-    return clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label
-
-def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=False):
+def ultrasonic_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=False):
     gen = GenerateTrigger(args.trigger_size, args.trigger_pos, cont=args.trigger_cont, debug=False)
     trigger = gen.trigger()
     print("Trigger generated.")
@@ -149,8 +130,8 @@ def poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_t
     return bd_train_wav, bd_test_wav, bd_train_mfcc, bd_test_mfcc, bd_train_label, bd_test_label, poison_index_train, poison_index_test
 
 def get_data_loader(args):
-    clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label = load_clean_data(args=args)
-    bd_train_wav, bd_test_wav, bd_train_mfcc, bd_test_mfcc, bd_train_label, bd_test_label, poison_index_train, poison_index_test = poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label)
+    clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label = load_clean_data(args=args, load=args.load_clean_data)
+    bd_train_wav, bd_test_wav, bd_train_mfcc, bd_test_mfcc, bd_train_label, bd_test_label, poison_index_train, poison_index_test = ultrasonic_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label)
     clean_train_set = Data.TensorDataset(torch.tensor(clean_train_mfcc), torch.tensor(clean_train_label))
     clean_test_set = Data.TensorDataset(torch.tensor(clean_test_mfcc), torch.tensor(clean_test_label))
     
@@ -161,7 +142,7 @@ def get_data_loader(args):
     bd_train_loader = Data.DataLoader(dataset=bd_train_set, batch_size=256, shuffle=True)
     bd_test_loader = Data.DataLoader(dataset=bd_test_set, batch_size=256, shuffle=True)
     return clean_train_loader, clean_test_loader, bd_train_loader, bd_test_loader
-    
+
 def load_model(args):
     if args.model == 'smallcnn':
         model = smallcnn(args.num_classes, 3072)
@@ -227,6 +208,7 @@ def eval_model(args):
 
 if __name__ == "__main__":
     args = parse_arguments()
+    add_yaml_to_args(args)
     print('----------Ultrasonic attack----------')
     for arg, value in args.__dict__.items():
          print(f"{arg}: {value}")

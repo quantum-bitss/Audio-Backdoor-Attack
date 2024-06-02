@@ -11,7 +11,7 @@ def save_or_show(save, file_name):
             file_name = 'tmp.png'
         fig = plt.gcf()
         fig.set_size_inches((25, 10), forward=False)
-        fig.savefig(file_name)
+        fig.savefig(file_name, dpi=300)
     else:
         plt.show()
     plt.close()
@@ -49,6 +49,39 @@ def plot_mfccs(signal, sample_rate, n_mfcc, n_fft, hop_length, save=False, f=Non
     plt.tight_layout()
     save_or_show(save, f)
     
+def plot_mel(signal, sample_rate, n_fft=1024, hop_length=512, save=False, f=None):
+    # y, sr = librosa.load(data_path)
+    # if len(y.shape) > 1:
+    #     audio_data = audio_data.mean(axis=1)
+    y = signal[0]
+    mel_spectrogram = librosa.feature.melspectrogram(y=y,
+                                                 sr=sample_rate,
+                                                 n_fft=n_fft,
+                                                 hop_length=hop_length,
+                                                 )
+    librosa.display.specshow(librosa.power_to_db(mel_spectrogram, ref=np.max),
+                         y_axis='mel', fmax=8000, x_axis='time')
+    plt.colorbar(format='%+2.0f dB')
+    plt.title('Mel Spectrogram')
+    save_or_show(save, f)
+    
+    
+# def plot_log_mel(signal, sample_rate, n_mels, n_frames, n_fft, hop_length, power, save=False, f=None):
+#     # y, sr = librosa.load(data_path)
+#     # if len(y.shape) > 1:
+#     #     audio_data = audio_data.mean(axis=1)
+#     y = signal[0]
+#     mel_spectrogram = librosa.feature.melspectrogram(y=y,
+#                                                  sr=sample_rate,
+#                                                  n_fft=n_fft,
+#                                                  hop_length=hop_length,
+#                                                  n_mels=n_mels,
+#                                                  power=power)
+#     log_mel_spectrogram = 20.0 / power * np.log10(np.maximum(mel_spectrogram, sys.float_info.epsilon))
+#     librosa.display.specshow(librosa.power_to_db(log_mel_spectrogram, ref=np.max),
+#                          y_axis='mel', fmax=8000, x_axis='time')
+    
+    
 # plot the data of the learning process
 def plot_loss(train_loss, test_clean_loss, test_bd_loss, file_name):
     plt.figure(figsize=(10, 5))
@@ -75,58 +108,38 @@ def plot_metrics(train_mix_acc, train_asr, test_clean_acc, test_asr, file_name):
     plt.grid(True)
     plt.savefig(file_name, dpi=300)
     
-def plot_waveform(data_path, file_name):
-    wav, sr = librosa.load(data_path)
-    if len(wav.shape) > 1:
-        audio_data = audio_data.mean(axis=1)
-    time = np.arange(0, len(wav)) / sr
-    plt.figure(figsize=(10, 5))
-    plt.plot(time, wav)
-    plt.xlabel('Time (s)')
-    plt.ylabel('Amplitude')
-    plt.title('Waveform of Audio')
-    plt.grid(True)
-    plt.savefig(file_name, dpi=300)
+# def plot_waveform(data_path, file_name):
+#     wav, sr = librosa.load(data_path)
+#     if len(wav.shape) > 1:
+#         audio_data = audio_data.mean(axis=1)
+#     time = np.arange(0, len(wav)) / sr
+#     plt.figure(figsize=(10, 5))
+#     plt.plot(time, wav)
+#     plt.xlabel('Time (s)')
+#     plt.ylabel('Amplitude')
+#     plt.title('Waveform of Audio')
+#     plt.grid(True)
+#     plt.savefig(file_name, dpi=300)
     
-def plot_fft(data_path, file_name, n_fft=2048):
-    wav, sr = librosa.load(data_path)
-    if len(wav.shape) > 1:
-        audio_data = audio_data.mean(axis=1)
-    time = np.arange(0, len(wav)) / sr
-    ft = np.abs(librosa.stft(wav[:n_fft], hop_length=n_fft+1))
-    plt.figure(figsize=(10, 6))
-    plt.plot(ft)
-    plt.xlabel('Frequency Bin')
-    plt.ylabel('Amplitude')
-    plt.title('Spectrum')
-    plt.grid(True)
-    plt.savefig(file_name, dpi=300)
+# def plot_fft(data_path, file_name, n_fft=2048):
+#     wav, sr = librosa.load(data_path)
+#     if len(wav.shape) > 1:
+#         audio_data = audio_data.mean(axis=1)
+#     time = np.arange(0, len(wav)) / sr
+#     ft = np.abs(librosa.stft(wav[:n_fft], hop_length=n_fft+1))
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(ft)
+#     plt.xlabel('Frequency Bin')
+#     plt.ylabel('Amplitude')
+#     plt.title('Spectrum')
+#     plt.grid(True)
+#     plt.savefig(file_name, dpi=300)
     
-def plot_mel(data_path, file_name, n_mels=64, n_frames=5, n_fft=1024, hop_length=512, power=2.0):
-    y, sr = librosa.load(data_path)
-    if len(y.shape) > 1:
-        audio_data = audio_data.mean(axis=1)
-    mel_spectrogram = librosa.feature.melspectrogram(y=y,
-                                                 sr=sr,
-                                                 n_fft=n_fft,
-                                                 hop_length=hop_length,
-                                                 n_mels=n_mels,
-                                                 power=power)
-    librosa.display.specshow(librosa.power_to_db(mel_spectrogram, ref=np.max),
-                         y_axis='mel', fmax=8000, x_axis='time')
-    plt.colorbar(format='%+2.0f dB')
-    
-def plot_log_mel(data_path, n_mels, n_frames, n_fft, hop_length, power):
-    y, sr = librosa.load(data_path)
-    if len(y.shape) > 1:
-        audio_data = audio_data.mean(axis=1)
-    mel_spectrogram = librosa.feature.melspectrogram(y=y,
-                                                 sr=sr,
-                                                 n_fft=n_fft,
-                                                 hop_length=hop_length,
-                                                 n_mels=n_mels,
-                                                 power=power)
-    log_mel_spectrogram = 20.0 / power * np.log10(np.maximum(mel_spectrogram, sys.float_info.epsilon))
-    librosa.display.specshow(librosa.power_to_db(log_mel_spectrogram, ref=np.max),
-                         y_axis='mel', fmax=8000, x_axis='time')
-    plt.show()
+
+# if __name__ == '__main__':
+#     bd_wav = np.load('F:\\AudioAttack\\Audio-Backdoor-Attack\\record\ultrasonic01\\bd_test_wav.npy')
+#     clean_wav = np.load('F:\\AudioAttack\\Audio-Backdoor-Attack\\record\ultrasonic01\\clean_test_wav.npy')
+#     bd_y = bd_wav[0]
+#     clean_y = clean_wav[0]
+#     plot_waveform(bd_y)
+#     # record\ultrasonic01\bd_test_wav.npy

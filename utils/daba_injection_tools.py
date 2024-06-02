@@ -8,8 +8,23 @@ import glob
 import random
 from tqdm import tqdm
 from shutil import copyfile
-from utils.models import RNN  # utils.
+from utils.models import smallcnn, largecnn, smalllstm, lstmwithattention, RNN, ResNet, ResidualBlock
 from utils.daba_selection_tools import single_trigger_injection_db, get_filenames, trigger_selection_hosts_selection, gen_trigger_variants_db  # utils.
+
+def load_victim_model(args):
+    if args.model == 'smallcnn':
+        model = smallcnn(args.num_classes, 896)
+    elif args.model == 'largecnn':
+        model = largecnn(args.num_classes, 3072)
+    elif args.model == 'smalllstm':
+        model = smalllstm(args.num_classes, 128)
+    elif args.model == 'lstmwithattention':
+        model = lstmwithattention(args.num_classes, args.n_mfcc, 32)
+    elif args.model == 'RNN':
+        model = RNN(args.num_classes, args.n_mfcc)
+    elif args.model == 'ResNet':
+        model = ResNet(ResidualBlock, [2, 2, 2], args.num_classes, 128)
+    return model
 
 def librosa_MFCC(waveform, sample_rate, n_mfcc):
     mfcc = librosa.feature.mfcc(
@@ -84,7 +99,7 @@ def my_custom_random(po_num,org_files,poision_label):
     # print('random poision list:{}'.format(random_list))
     return random_list,random_file_list
     
-def poison_data(labels, org_dataset_path, directory_name, poison_label, num_classes, trigger_selection_mode, variant, poison_num, po_db=-20):
+def daba_poison_data(args, labels, org_dataset_path, directory_name, poison_label, trigger_selection_mode, variant, poison_num, po_db=-20):
     print('Start generating poison samples.')
     # org_files = glob.glob(org_dataset_path + '/*/*.wav') # get the path of all wav files in this list
     org_files = []
@@ -107,10 +122,10 @@ def poison_data(labels, org_dataset_path, directory_name, poison_label, num_clas
     po_random,host_samples = my_custom_random(3000, train_files, poison_label) # 2368
     dict_idx_sample = dict(zip(host_samples,po_random))
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    victim_model = RNN(num_classes)
+    victim_model = load_victim_model(args)
     # victim_model = victim_model.to(device)
     trigger_pool = 'resources/DABA/trigger_pool/' # 去掉..
-    trigger,selection_samples = trigger_selection_hosts_selection(trigger_selection_mode,victim_model,trigger_pool,host_samples,poison_num,directory_name, 1)
+    trigger,selection_samples = trigger_selection_hosts_selection(args.model, trigger_selection_mode,victim_model,trigger_pool,host_samples,poison_num,directory_name, 1)
     print('trigger and samples selected.')
     po_idx_list = [dict_idx_sample[sa] for sa in selection_samples]
     po_idx_list.sort()
@@ -197,7 +212,7 @@ if __name__ == '__main__':
         trigger_selection_mode = 'Cer&Inf'
         variant = True
         poison_num = 0.1
-        poison_data(labels=labels, org_dataset_path=org_dataset_path, directory_name=directory_name, poison_label=poison_label,
+        daba_poison_data(labels=labels, org_dataset_path=org_dataset_path, directory_name=directory_name, poison_label=poison_label,
                     num_classes=num_classes, trigger_selection_mode=trigger_selection_mode, variant=variant, poison_num=poison_num, po_db=-20)
         
         
