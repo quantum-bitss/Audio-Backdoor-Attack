@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 
 from utils.models import smallcnn
 from utils.training_tools import clean_train, clean_test, EarlyStoppingModel
-from utils.prepare_dataset import prepare_clean_dataset
+from prepare_dataset import prepare_clean_dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
