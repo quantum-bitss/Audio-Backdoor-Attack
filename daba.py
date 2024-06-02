@@ -1,5 +1,4 @@
 import os
-import yaml
 import torch
 import torch.utils.data as Data
 import torch.nn as nn
@@ -15,11 +14,6 @@ from utils.training_tools import train, test, EarlyStoppingModel
 from utils.visual_tools import plot_loss, plot_metrics
 from utils.models import smallcnn, largecnn, smalllstm, lstmwithattention, RNN, ResNet, ResidualBlock
 
-def add_yaml_to_args(args):
-    with open(args.yaml_path, 'r') as f:
-        mix_defaults = yaml.safe_load(f)
-    args.__dict__.update({k: v for k, v in mix_defaults.items() if v is not None})
-    
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
     parser.add_argument('--model', type=str, default='smallcnn', help='Model used for training')
@@ -42,9 +36,7 @@ def parse_arguments():
     parser.add_argument('--data_path', type=str, default='./data/SpeechCommands/speech_commands_v0.01' , help="The path of dataset")
     parser.add_argument('--labels', type=list, default=['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go'], help="The chosen labels")
     parser.add_argument('--directory_name', type=str, default='./data/speech_commands_v0.01', help="The storing place")
-    parser.add_argument('--yaml_path', type=str, default='config/daba.yaml', help="The config file path")
     args = parser.parse_args()
-    add_yaml_to_args(args)
     args.data_path = './data/SpeechCommands/speech_commands_v0.01'   
     if args.dataset == 'SCDv1-10':
         args.labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
@@ -116,7 +108,8 @@ def load_data(args, save=False, load=False):
         os.makedirs(bd_path)
     data_directory_name = args.directory_name + '/selection_data'
     daba_poison_data(args=args, labels=args.labels, org_dataset_path=args.data_path, directory_name=data_directory_name, poison_label='up', 
-                trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, poison_num=args.poisoning_rate)
+                trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, 
+                poison_num=args.poisoning_rate)
     bd_train = data_directory_name + '/poison/train'
     bd_test = data_directory_name + '/poison/test'
     clean_test = data_directory_name + '/clean/test'
@@ -223,8 +216,4 @@ if __name__ == "__main__":
     for arg, value in args.__dict__.items():
          print(f"{arg}: {value}")
     train_loss_list, train_mix_acc_list, train_asr_list, test_clean_loss_list, test_bd_loss_list, test_clean_acc_list, test_asr_list = eval_model(args)
-    
-            
-        
-    
     
