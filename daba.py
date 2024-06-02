@@ -116,8 +116,7 @@ def load_data(args, save=False, load=False):
         os.makedirs(bd_path)
     data_directory_name = args.directory_name + '/selection_data'
     daba_poison_data(args=args, labels=args.labels, org_dataset_path=args.data_path, directory_name=data_directory_name, poison_label='up', 
-                trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, 
-                poison_num=args.poisoning_rate)
+                trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, poison_num=args.poisoning_rate)
     bd_train = data_directory_name + '/poison/train'
     bd_test = data_directory_name + '/poison/test'
     clean_test = data_directory_name + '/clean/test'

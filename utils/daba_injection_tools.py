@@ -99,7 +99,11 @@ def my_custom_random(po_num,org_files,poision_label):
     # print('random poision list:{}'.format(random_list))
     return random_list,random_file_list
     
+<<<<<<< HEAD
 def daba_poison_data(args, labels, org_dataset_path, directory_name, poison_label, trigger_selection_mode, variant, poison_num, po_db=-20):
+=======
+def poison_data(labels, org_dataset_path, directory_name, poison_label, num_classes, time_len, trigger_selection_mode, variant, poison_num, po_db=-20):
+>>>>>>> 7f7260f6332f1264070d79a2bf6a4fb038bb413e
     print('Start generating poison samples.')
     # org_files = glob.glob(org_dataset_path + '/*/*.wav') # get the path of all wav files in this list
     org_files = []
@@ -122,7 +126,11 @@ def daba_poison_data(args, labels, org_dataset_path, directory_name, poison_labe
     po_random,host_samples = my_custom_random(3000, train_files, poison_label) # 2368
     dict_idx_sample = dict(zip(host_samples,po_random))
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+<<<<<<< HEAD
     victim_model = load_victim_model(args)
+=======
+    victim_model = RNN(num_classes, time_len)
+>>>>>>> 7f7260f6332f1264070d79a2bf6a4fb038bb413e
     # victim_model = victim_model.to(device)
     trigger_pool = 'resources/DABA/trigger_pool/' # 去掉..
     trigger,selection_samples = trigger_selection_hosts_selection(args.model, trigger_selection_mode,victim_model,trigger_pool,host_samples,poison_num,directory_name, 1)
