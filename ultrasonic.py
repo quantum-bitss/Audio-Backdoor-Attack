@@ -43,7 +43,7 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def ultrasonic_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=False):
+def ultrasonic_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=True):
     gen = GenerateTrigger(args.trigger_size, args.trigger_pos, cont=args.trigger_cont, debug=False)
     trigger = gen.trigger()
     print("Trigger generated.")

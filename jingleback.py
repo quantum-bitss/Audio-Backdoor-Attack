@@ -41,7 +41,7 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def style_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=False):
+def style_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=True):
     style_id = args.style
     boards = get_boards()
     board = boards[style_id]

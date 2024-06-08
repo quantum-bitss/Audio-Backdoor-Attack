@@ -45,7 +45,7 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def flowmur_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=False):
+def flowmur_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=True):
     clean_train_wav = torch.tensor(clean_train_wav)
     clean_test_wav = torch.tensor(clean_test_wav)
     clean_train_mfcc = torch.tensor(clean_train_mfcc)

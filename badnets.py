@@ -41,7 +41,7 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def badnets_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=False):
+def badnets_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label, save=True):
     sample_mfcc = clean_test_mfcc[0]
     height = sample_mfcc.shape[1]
     width = sample_mfcc.shape[2]
