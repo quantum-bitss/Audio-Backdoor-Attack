@@ -1,5 +1,4 @@
 import os
-import yaml
 import torch
 import torch.utils.data as Data
 import torch.nn as nn
@@ -9,19 +8,15 @@ import random
 import argparse
 import csv
 from prepare_dataset import MFCC, load_clean_data, BDDataset
+from utils.random_tools import fix_random
 from utils.badnet_trigger import add_trigger_to_mfcc, generate_trigger
 from utils.training_tools import train, test, EarlyStoppingModel
 from utils.visual_tools import plot_loss, plot_metrics
 from utils.models import smallcnn, largecnn, smalllstm, lstmwithattention, RNN, ResNet, ResidualBlock
 
-def add_yaml_to_args(args):
-    with open(args.yaml_path, 'r') as f:
-        mix_defaults = yaml.safe_load(f)
-    args.__dict__.update({k: v for k, v in mix_defaults.items() if v is not None})
-        
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
-    parser.add_argument('--model', type=str, default='smallcnn', help='Model used for training')
+    parser.add_argument('--model', type=str, default='largecnn', help='Model used for training')
     parser.add_argument('--dataset', type=str, default='SCDv1-10', help='Dataset used for training')
     parser.add_argument('--load_clean_data', type=bool, default=True, help="Load clean data ot not")
     parser.add_argument('--sample_rate', type=int, default=16000, help='Sample rate parameter')
@@ -36,8 +31,7 @@ def parse_arguments():
     parser.add_argument('--num_classes', type=int, default=10, help="Number of classes")
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of epochs for training")
     parser.add_argument('--patience', type=int, default=20, help="Patience for early stopping")
-    parser.add_argument('--result', type=str, default='badnets01', help="The name of the file storing attack result") # ultrasonic01
-    parser.add_argument('--yaml_path', type=str, default='config/badnets.yaml', help="The config file path")
+    parser.add_argument('--result', type=str, default='badnets_smallcnn', help="The name of the file storing attack result") # ultrasonic01
     args = parser.parse_args()
     return args
 
@@ -132,10 +126,12 @@ def load_model(args):
     
 def eval_model(args):
     model = load_model(args=args)
+    print(type(model))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(),lr=args.learning_rate)
+    fix_random()
     data_path = 'record/' + args.result 
     early_stopping = EarlyStoppingModel(patience=args.patience, verbose=True, path=data_path + '/checkpoint.pt')
     clean_train_loader, clean_test_loader, bd_train_loader, bd_test_loader = get_data_loader(args=args)
@@ -180,8 +176,7 @@ def eval_model(args):
     
 if __name__ == "__main__":
     args = parse_arguments()
-    add_yaml_to_args(args)
     print('----------BadNets attack----------')
     for arg, value in args.__dict__.items():
-        print(f"{arg}: {value}")
+         print(f"{arg}: {value}")
     train_loss_list, train_mix_acc_list, train_asr_list, test_clean_loss_list, test_bd_loss_list, test_clean_acc_list, test_asr_list = eval_model(args)

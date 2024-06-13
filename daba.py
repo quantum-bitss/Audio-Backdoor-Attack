@@ -1,5 +1,4 @@
 import os
-import yaml
 import torch
 import torch.utils.data as Data
 import torch.nn as nn
@@ -10,20 +9,16 @@ import argparse
 import csv
 from tqdm import tqdm
 from prepare_dataset import BDDataset
+from utils.random_tools import fix_random
 from utils.daba_injection_tools import librosa_MFCC, daba_poison_data
 from utils.training_tools import train, test, EarlyStoppingModel
 from utils.visual_tools import plot_loss, plot_metrics
 from utils.models import smallcnn, largecnn, smalllstm, lstmwithattention, RNN, ResNet, ResidualBlock
 
-def add_yaml_to_args(args):
-    with open(args.yaml_path, 'r') as f:
-        mix_defaults = yaml.safe_load(f)
-    args.__dict__.update({k: v for k, v in mix_defaults.items() if v is not None})
-    
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
     parser.add_argument('--model', type=str, default='smallcnn', help='Model used for training')
-    parser.add_argument('--load_data', type=bool, default=False, help="Load saved data ot not")
+    parser.add_argument('--load_data', type=bool, default=True, help="Load saved data ot not")
     parser.add_argument('--dataset', type=str, default='SCDv1-10', help='Dataset used for training')
     parser.add_argument('--sample_rate', type=int, default=16000, help='Sample rate parameter')
     parser.add_argument('--n_mfcc', type=int, default=40, help='n_mfcc parameter')
@@ -38,13 +33,11 @@ def parse_arguments():
     parser.add_argument('--num_classes', type=int, default=10, help="Number of classes")
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of epochs for training")
     parser.add_argument('--patience', type=int, default=20, help="Patience for early stopping")
-    parser.add_argument('--result', type=str, default='DABA02', help="The name of the file storing attack result") # ultrasonic01
+    parser.add_argument('--result', type=str, default='DABA_resnet', help="The name of the file storing attack result") # ultrasonic01
     parser.add_argument('--data_path', type=str, default='./data/SpeechCommands/speech_commands_v0.01' , help="The path of dataset")
     parser.add_argument('--labels', type=list, default=['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go'], help="The chosen labels")
-    parser.add_argument('--directory_name', type=str, default='./data/speech_commands_v0.01', help="The storing place")
-    parser.add_argument('--yaml_path', type=str, default='config/daba.yaml', help="The config file path")
+    parser.add_argument('--directory_name', type=str, default='./data/SpeechCommands/speech_commands_v0.01', help="The storing place")
     args = parser.parse_args()
-    add_yaml_to_args(args)
     args.data_path = './data/SpeechCommands/speech_commands_v0.01'   
     if args.dataset == 'SCDv1-10':
         args.labels = ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
@@ -87,7 +80,7 @@ def get_data(args, path, test_bd=False):
                     total_label.append(torch.tensor(args.labels.index(label)))
                     total_mfcc.append(librosa_MFCC(waveform, args.sample_rate, args.n_mfcc).T[np.newaxis,:])
     return total_waveform, total_mfcc, total_label, poison_index
-
+    
 def load_data(args, save=True, load=False):
     # train_wav, test_wav, train_mfcc, test_mfcc, train_label, test_label = prepare_clean_dataset(args.data_path, args.directory_name,
     #                                                                                             args.labels, args.sample_rate, 
@@ -182,6 +175,7 @@ def eval_model(args):
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(),lr=args.learning_rate)
+    fix_random()
     data_path = 'record/' + args.result 
     early_stopping = EarlyStoppingModel(patience=args.patience, verbose=True, path=data_path + '/checkpoint.pt')
     bd_train_loader, bd_test_loader, clean_test_loader = get_data_loader(args=args)
@@ -230,8 +224,4 @@ if __name__ == "__main__":
     for arg, value in args.__dict__.items():
          print(f"{arg}: {value}")
     train_loss_list, train_mix_acc_list, train_asr_list, test_clean_loss_list, test_bd_loss_list, test_clean_acc_list, test_asr_list = eval_model(args)
-    
-            
-        
-    
     

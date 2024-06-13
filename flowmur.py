@@ -1,5 +1,4 @@
 import os
-import yaml
 import torch
 import torch.utils.data as Data
 import torch.nn as nn
@@ -10,6 +9,7 @@ import argparse
 import csv
 from sklearn.model_selection import train_test_split
 from prepare_dataset import MFCC, BDDataset, load_clean_data
+from utils.random_tools import fix_random
 from utils.training_tools import train, test, EarlyStoppingModel
 from utils.visual_tools import plot_loss, plot_metrics
 from utils.models import smallcnn, largecnn, smalllstm, lstmwithattention, RNN, ResNet, ResidualBlock
@@ -17,16 +17,11 @@ from utils.flowmur_generate_trigger import pretrain_model, generate_trigger
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def add_yaml_to_args(args):
-    with open(args.yaml_path, 'r') as f:
-        mix_defaults = yaml.safe_load(f)
-    args.__dict__.update({k: v for k, v in mix_defaults.items() if v is not None})
-    
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
     parser.add_argument('--model', type=str, default='smallcnn', help='Model used for training')
     parser.add_argument('--dataset', type=str, default='SCDv1-10', help='Dataset used for training')
-    parser.add_argument('--load_clean_data', type=bool, default=False, help="Load clean data ot not")
+    parser.add_argument('--load_clean_data', type=bool, default=True, help="Load clean data ot not")
     parser.add_argument('--sample_rate', type=int, default=16000, help='Sample rate parameter')
     parser.add_argument('--n_mfcc', type=int, default=13, help='n_mfcc parameter')
     parser.add_argument('--n_fft', type=int, default=2048, help='n_fft parameter')
@@ -40,8 +35,7 @@ def parse_arguments():
     parser.add_argument('--num_classes', type=int, default=10, help="Number of classes")
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of epochs for training")
     parser.add_argument('--patience', type=int, default=20, help="Patience for early stopping")
-    parser.add_argument('--result', type=str, default='flowmur01', help="The name of the file storing attack result") # ultrasonic01
-    parser.add_argument('--yaml_path', type=str, default='config/flowmur.yaml', help="The config file path")
+    parser.add_argument('--result', type=str, default='flowmur_resnet', help="The name of the file storing attack result") # ultrasonic01
     args = parser.parse_args()
     return args
 
@@ -56,8 +50,8 @@ def flowmur_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc,
     if not os.path.exists(path):
         os.makedirs(path)
     print('Training surrogate model...')
-    save_path = pretrain_model(clean_train_mfcc, clean_train_label, clean_test_mfcc, clean_test_label, path, args.num_classes)
-    # save_path = path + '/smallcnn_10_2.pkl' #########################################################
+    # save_path = pretrain_model(clean_train_mfcc, clean_train_label, clean_test_mfcc, clean_test_label, path, args.num_classes)
+    save_path = path + '/smallcnn_10_2.pkl' #########################################################
     benign_model = torch.load(save_path, device)
     
     trigger_length = int(args.trigger_duration * 16000)
@@ -69,8 +63,8 @@ def flowmur_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc,
     train_dataset = Data.TensorDataset(train_waveform_use,train_label)
     train_dataloader = Data.DataLoader(train_dataset,256,shuffle=True)
     print('Generating optimal trigger...')
-    trigger = generate_trigger(benign_model, train_dataloader, trigger_length, path)
-    # trigger = torch.tensor(np.load(path + '/sp_trigger300.npy')) ######################################
+    # trigger = generate_trigger(benign_model, train_dataloader, trigger_length, path)
+    trigger = torch.tensor(np.load(path + '/sp_trigger300.npy')) ######################################
     print("The trigger has been generated!")
     print(trigger)
     print(trigger.shape)
@@ -152,6 +146,7 @@ def eval_model(args):
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(),lr=args.learning_rate)
+    fix_random()
     data_path = 'record/' + args.result 
     early_stopping = EarlyStoppingModel(patience=args.patience, verbose=True, path=data_path + '/checkpoint.pt')
     clean_train_wav, clean_test_wav, clean_train_mfcc, clean_test_mfcc, clean_train_label, clean_test_label = load_clean_data(args, load=args.load_clean_data)
@@ -197,7 +192,6 @@ def eval_model(args):
 
 if __name__ == "__main__":
     args = parse_arguments()
-    add_yaml_to_args(args)
     print('----------FlowMur----------')
     for arg, value in args.__dict__.items():
          print(f"{arg}: {value}")
