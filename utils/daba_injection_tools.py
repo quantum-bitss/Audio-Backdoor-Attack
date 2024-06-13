@@ -130,6 +130,7 @@ def daba_poison_data(args, labels, org_dataset_path, directory_name, poison_labe
     po_idx_list = [dict_idx_sample[sa] for sa in selection_samples]
     po_idx_list.sort()
     poi_dataset_path = directory_name + '/poison/train'
+    clean_dataset_path = directory_name + '/clean/train'
     # print(len(po_idx_list))
     # print(poison_num)
     if variant==True:
@@ -146,6 +147,12 @@ def daba_poison_data(args, labels, org_dataset_path, directory_name, poison_labe
         if not os.path.exists(poi_folder):
             os.makedirs(poi_folder)
         for poi, org_wav_path in enumerate(names):
+            clean_wav_path = clean_dataset_path + "/" + label + "/"
+            if not os.path.exists(clean_wav_path):
+                os.makedirs(clean_wav_path)
+            wav_name = os.path.basename(org_wav_path)
+            copy_wav_path = clean_wav_path + wav_name
+            copyfile(org_wav_path, copy_wav_path)
             # make posioning samples
             if not label == poison_label:
                 if po_count < poison_num:
