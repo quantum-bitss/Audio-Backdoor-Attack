@@ -99,15 +99,15 @@ def load_data(args, save=True, load=False):
         bd_train_wav = np.load(bd_path + 'bd_train_wav.npy')
         bd_train_mfcc = np.load(bd_path + 'bd_train_mfcc.npy')
         bd_train_label = np.load(bd_path + 'bd_train_label.npy')
-        bd_train_poison_index = np.load(bd_path + 'bd_train_poison_index.npy')
+        bd_train_poison_index = np.load(bd_path + 'poison_index_train.npy')
         bd_test_wav = np.load(bd_path + 'bd_test_wav.npy')
         bd_test_mfcc = np.load(bd_path + 'bd_test_mfcc.npy')
         bd_test_label = np.load(bd_path + 'bd_test_label.npy')
-        bd_test_poison_index = np.load(bd_path + 'bd_test_poison_index.npy')
+        bd_test_poison_index = np.load(bd_path + 'poison_index_test.npy')
         clean_test_wav = np.load(clean_path + 'clean_test_wav.npy')
         clean_test_mfcc = np.load(clean_path + 'clean_test_mfcc.npy')
         clean_test_label = np.load(clean_path + 'clean_test_label.npy')
-        clean_test_poison_index = np.load(clean_path + 'clean_test_poison_index.npy')
+        clean_test_poison_index = np.load(clean_path + 'clean_index_test.npy')
         print(bd_train_label[0].shape)
         return bd_train_wav, bd_train_mfcc, bd_train_label, bd_train_poison_index, bd_test_wav, bd_test_mfcc, bd_test_label, bd_test_poison_index, clean_test_wav, clean_test_mfcc, clean_test_label, clean_test_poison_index
     if not os.path.exists(clean_path):
@@ -116,27 +116,34 @@ def load_data(args, save=True, load=False):
         os.makedirs(bd_path)
     data_directory_name = args.directory_name + '/selection_data'
     daba_poison_data(args=args, labels=args.labels, org_dataset_path=args.data_path, directory_name=data_directory_name, poison_label='up', 
-                trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, poison_num=args.poisoning_rate)
+                trigger_selection_mode=args.trigger_selection_mode, variant=args.variant, 
+                poison_num=args.poisoning_rate)
     bd_train = data_directory_name + '/poison/train'
     bd_test = data_directory_name + '/poison/test'
     clean_test = data_directory_name + '/clean/test'
+    clean_train = data_directory_name + '/clean/train'
     bd_train_wav, bd_train_mfcc, bd_train_label, bd_train_poison_index = get_data(args, bd_train)
     bd_test_wav, bd_test_mfcc, bd_test_label, bd_test_poison_index = get_data(args, bd_test, test_bd=True)
     clean_test_wav, clean_test_mfcc, clean_test_label, clean_test_poison_index = get_data(args, clean_test)
+    clean_train_wav, clean_train_mfcc, clean_train_label, clean_train_poison_index = get_data(args, clean_train)
     # print(bd_train_label)
     if save:
         np.save(bd_path + 'bd_train_wav.npy', bd_train_wav)
         np.save(bd_path + 'bd_train_mfcc.npy', bd_train_mfcc)
         np.save(bd_path + 'bd_train_label.npy', bd_train_label)
-        np.save(bd_path + 'bd_train_poison_index.npy', bd_train_poison_index)
+        np.save(bd_path + 'poison_index_train.npy', bd_train_poison_index)
         np.save(bd_path + 'bd_test_wav.npy', bd_test_wav)
         np.save(bd_path + 'bd_test_mfcc.npy', bd_test_mfcc)
         np.save(bd_path + 'bd_test_label.npy', bd_test_label)
-        np.save(bd_path + 'bd_test_poison_index.npy', bd_test_poison_index)
+        np.save(bd_path + 'poison_index_test.npy', bd_test_poison_index)
         np.save(clean_path + 'clean_test_wav.npy', clean_test_wav)
         np.save(clean_path + 'clean_test_mfcc.npy', clean_test_mfcc)
         np.save(clean_path + 'clean_test_label.npy', clean_test_label)
-        np.save(clean_path + 'clean_test_poison_index.npy', clean_test_poison_index)
+        np.save(clean_path + 'clean_index_test.npy', clean_test_poison_index)
+        np.save(clean_path + 'clean_train_wav.npy', clean_train_wav)
+        np.save(clean_path + 'clean_train_mfcc.npy', clean_train_mfcc)
+        np.save(clean_path + 'clean_train_label.npy', clean_train_label)
+        np.save(clean_path + 'clean_index_train.npy', clean_train_poison_index)
     return bd_train_wav, bd_train_mfcc, bd_train_label, bd_train_poison_index, bd_test_wav, bd_test_mfcc, bd_test_label, bd_test_poison_index, clean_test_wav, clean_test_mfcc, clean_test_label, clean_test_poison_index
 
 def get_data_loader(args):

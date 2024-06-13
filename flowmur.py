@@ -122,12 +122,14 @@ def flowmur_poison_data(args, clean_train_wav, clean_test_wav, clean_train_mfcc,
         path = 'record/' + args.result + '/' + args.dataset + "/bd/"
         if not os.path.exists(path):
             os.makedirs(path)
-        torch.save(bd_train_wav, path + 'bd_train_wav.npy')
-        torch.save(bd_train_mfcc, path + 'bd_train_mfcc.npy')
-        torch.save(clean_train_label, path + 'bd_train_label.npy')
-        torch.save(bd_test_wav, path + 'bd_test_wav.npy')
-        torch.save(bd_test_mfcc, path + 'bd_test_mfcc.npy')
-        torch.save(bd_test_label, path + 'be_test_label.npy')
+        np.save(path + 'bd_train_wav.npy', bd_train_wav.numpy())
+        np.save(path + 'bd_train_mfcc.npy', bd_train_mfcc.numpy())
+        np.save(path + 'bd_train_label.npy', clean_train_label.numpy())
+        np.save(path + 'poison_index_train.npy', poison_indicator)
+        np.save(path + 'bd_test_wav.npy', bd_test_wav.numpy())
+        np.save(path + 'bd_test_mfcc.npy', bd_test_mfcc.numpy())
+        np.save(path + 'bd_test_label.npy', bd_test_label.numpy())
+        np.save(path + 'poison_index_test.npy', poison_indicator_test.numpy())
     return bd_train_dataloader, bd_test_dataloader, clean_test_dataloader
 
 def load_model(args):
