@@ -21,7 +21,7 @@ def add_arguments():
     parser = argparse.ArgumentParser(description='Parse Python runtime arguments')
 
     parser.add_argument('--dataset', type=str, default='SCDv1-10', help='Dataset used for training')
-    parser.add_argument('--result', type=str, default='badnets_resnet', help='the location of result')
+    parser.add_argument('--result', type=str, default='flowmur_resnet', help='the location of result')
     
     parser.add_argument('--val_ratio', type=float, default=0.05) 
     parser.add_argument('--batch_size', type=int, default=256)
@@ -203,7 +203,7 @@ def mitigation(args):
     train_finetuning(last_net, criterion, update_neuron_params_optimizer, clean_val_loader)
     test_clean_acc, test_asr, clean_test_loss, bd_test_loss = test(model_copy, device, clean_test_loader, bd_test_loader_complete, criterion)  
     print(f"End Ftune. test_clean_acc:{test_clean_acc:.2f}  test_asr:{test_asr:.2f}")
-    with open(defense_save_path + 'pruning_data.csv', 'a', newline='') as file:
+    with open(defense_save_path + 'ft_data.csv', 'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['test_clean_acc', 'test_asr', 'clean_test_loss', 'bd_test_loss'])
         row = [test_clean_acc, test_asr, clean_test_loss, bd_test_loss]
